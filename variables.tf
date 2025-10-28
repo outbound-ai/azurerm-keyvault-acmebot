@@ -172,6 +172,12 @@ variable "trans_ip" {
   default = null
 }
 
+variable "storage_account_name" {
+  description = "Name of the existing storage account to use"
+  type        = string
+  default     = null
+}
+
 locals {
   external_account_binding = var.external_account_binding != null ? {
     "Acmebot:ExternalAccountBinding:KeyId"     = var.external_account_binding.key_id

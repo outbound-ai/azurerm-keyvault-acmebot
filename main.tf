@@ -1,4 +1,5 @@
 resource "azurerm_storage_account" "storage" {
+  count               = var.storage_account_name == null ? 1 : 0
   name                = "st${substr(replace(lower(var.app_base_name), "/[^a-z0-9]/", ""), 0, 22)}"
   resource_group_name = var.resource_group_name
   location            = var.location
@@ -7,6 +8,7 @@ resource "azurerm_storage_account" "storage" {
   account_kind                    = "Storage"
   account_tier                    = "Standard"
   account_replication_type        = "LRS"
+  https_traffic_only_enabled      = true
   allow_nested_items_to_be_public = false
   min_tls_version                 = "TLS1_2"
 
@@ -15,6 +17,12 @@ resource "azurerm_storage_account" "storage" {
       tags
     ]
   }
+}
+
+data "azurerm_storage_account" "storage" {
+  count               = var.storage_account_name != null ? 1 : 0
+  name                = var.storage_account_name
+  resource_group_name = var.resource_group_name
 }
 
 resource "azurerm_service_plan" "serverfarm" {
@@ -72,8 +80,8 @@ resource "azurerm_windows_function_app" "function" {
   tags                = var.additional_tags
 
   service_plan_id             = azurerm_service_plan.serverfarm.id
-  storage_account_name        = azurerm_storage_account.storage.name
-  storage_account_access_key  = azurerm_storage_account.storage.primary_access_key
+  storage_account_name        = var.storage_account_name == null ? azurerm_storage_account.storage[0].name : data.azurerm_storage_account.storage[0].name
+  storage_account_access_key  = var.storage_account_name == null ? azurerm_storage_account.storage[0].primary_access_key : data.azurerm_storage_account.storage[0].primary_access_key
   functions_extension_version = "~4"
   https_only                  = true
 
