@@ -1,6 +1,6 @@
 resource "azurerm_storage_account" "storage" {
   count               = var.storage_account_name == null ? 1 : 0
-  name                = "st${replace(lower(var.app_base_name), "/[^a-z0-9]/", "")}"
+  name                = "st${substr(replace(lower(var.app_base_name), "/[^a-z0-9]/", ""), 0, 22)}"
   resource_group_name = var.resource_group_name
   location            = var.location
   tags                = var.additional_tags
@@ -86,8 +86,9 @@ resource "azurerm_windows_function_app" "function" {
   https_only                  = true
 
   app_settings = merge({
-    "WEBSITE_RUN_FROM_PACKAGE" = "https://stacmebotprod.blob.core.windows.net/keyvault-acmebot/v4/latest.zip"
-    "WEBSITE_TIME_ZONE"        = var.time_zone
+    "FUNCTIONS_INPROC_NET8_ENABLED" = "1"
+    "WEBSITE_RUN_FROM_PACKAGE"      = "https://stacmebotprod.blob.core.windows.net/keyvault-acmebot/v4/latest.zip"
+    "WEBSITE_TIME_ZONE"             = var.time_zone
   }, local.acmebot_app_settings, local.auth_app_settings, var.additional_app_settings)
 
   dynamic "sticky_settings" {
@@ -131,8 +132,10 @@ resource "azurerm_windows_function_app" "function" {
     scm_use_main_ip_restriction            = true
 
     application_stack {
-      dotnet_version = "v6.0"
+      dotnet_version = "v8.0"
     }
+
+    ip_restriction_default_action = length(var.allowed_ip_addresses) != 0 ? "Deny" : "Allow"
 
     dynamic "ip_restriction" {
       for_each = var.allowed_ip_addresses
